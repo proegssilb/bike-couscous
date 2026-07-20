@@ -56,20 +56,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startAndBindService() {
-        val intent = Intent(this, RecordingService::class.java)
-        ContextCompat.startForegroundService(this, intent)
+    override fun onStart() {
+        super.onStart()
+        // Reattach to RecordingService if it's already running -- e.g. the Activity was
+        // recreated after being backgrounded with the screen off while a session was live.
+        // Plain bindService (no BIND_AUTO_CREATE) only succeeds against an existing service,
+        // so this never starts a new session just by opening the app. If it fails, the
+        // service genuinely isn't running, so drop any stale reference from before.
         if (!isBound) {
-            bindService(intent, connection, Context.BIND_AUTO_CREATE)
-            isBound = true
+            val intent = Intent(this, RecordingService::class.java)
+            isBound = bindService(intent, connection, 0)
+            if (!isBound) service = null
         }
     }
 
-    override fun onDestroy() {
+    override fun onStop() {
+        // Unbind without clearing `service`: the object reference stays valid (the service
+        // keeps running independently via startForegroundService) and this avoids a flash of
+        // the disconnected screen on quick app-switches. onStart's rebind will confirm or
+        // correct it.
         if (isBound) {
             unbindService(connection)
             isBound = false
         }
-        super.onDestroy()
+        super.onStop()
+    }
+
+    private fun startAndBindService() {
+        val intent = Intent(this, RecordingService::class.java)
+        ContextCompat.startForegroundService(this, intent)
+        if (!isBound) {
+            isBound = bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        }
     }
 }
