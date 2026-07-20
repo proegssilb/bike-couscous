@@ -47,7 +47,9 @@ class HealthConnectRepository(private val context: Context) {
 
         val startZoneOffset = ZoneId.systemDefault().rules.getOffset(session.startTime)
         val endZoneOffset = ZoneId.systemDefault().rules.getOffset(session.endTime)
-        val device = Device(type = Device.TYPE_FITNESS_MACHINE, manufacturer = "Reebok", model = "SL8.0")
+        // connect-client 1.1.0's Device.TYPE_* enum tops out at TYPE_SMART_DISPLAY --
+        // no exercise-equipment type exists yet, so this is the honest choice.
+        val device = Device(type = Device.TYPE_UNKNOWN, manufacturer = "Reebok", model = "SL8.0")
         val metadata = Metadata.activelyRecorded(device = device)
 
         val records = buildList {
